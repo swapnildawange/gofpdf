@@ -2,7 +2,6 @@ package main
 
 import (
 	"HDFC/poc/bl"
-	"encoding/json"
 	"fmt"
 	"html"
 	"log"
@@ -24,13 +23,9 @@ func main() {
 		ts := bl.GetTransactions()
 
 		gopdfWriter := &bl.GoPDFWriter{}
-		gopdfWriter.WriteToPDF(ts)
+		pdfBase64 := gopdfWriter.WriteToPDF(ts)
 
-		pdfCPUWriter := &bl.PDFCPUWriter{}
-		pdfCPUWriter.WriteToPDF(ts)
-
-		res, _ := json.MarshalIndent(ts, "", "\t")
-		w.Write(res)
+		w.Write([]byte(pdfBase64))
 	})
 
 	errChan := make(chan error, 1)
