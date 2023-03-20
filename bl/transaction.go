@@ -21,16 +21,13 @@ type BL interface {
 type GoPDFWriter struct {
 }
 
-type PDFCPUWriter struct {
-}
-
 const (
 	MARGIN = 10
 )
 
-func GetTransactions() []models.Transaction {
+func GetTransactions(n int) []models.Transaction {
 	rand.Seed(time.Now().UnixNano())
-	transactions := make([]models.Transaction, 10000)
+	transactions := make([]models.Transaction, n)
 
 	for i := range transactions {
 		transactions[i] = models.Transaction{
@@ -38,7 +35,7 @@ func GetTransactions() []models.Transaction {
 			AccountNumber: rand.Int63(),
 			Amount:        float64(rand.Intn(1000)+1) / 10.0,
 			Type:          getRandomType(),
-			Date:          time.Now().Add(time.Duration(rand.Intn(86400)) * time.Second * -1),
+			Date:          time.Now().Add(time.Duration(rand.Intn(86400)) * time.Second * -1).Format("Mon, 02 Jan 2006"),
 			Description:   fmt.Sprintf("Transaction %d", i+1),
 		}
 	}
@@ -68,36 +65,51 @@ func (w GoPDFWriter) WriteToPDF(transactions []models.Transaction) string {
 
 	pdf.AliasNbPages("")
 
-	columns := []string{"ID", "Account ID", "Amount", "Type", "Date", "Description"}
+	columns := []string{"ID", "Account Number", "Amount", "Type", "Date", "Description"}
 
 	pdf.AddPage()
 
 	width, _ := pdf.GetPageSize()
 	pdf.SetMargins(MARGIN, MARGIN, MARGIN)
-	// remove the margins from total width
-	// tw := (width - MARGIN*2) / float64(len(columns))
-	ratios := []float64{0.15, 0.15, 0.15, 0.15, 0.2, 0.2}
+	ratios := []float64{0.2, 0.2, 0.1, 0.1, 0.15, 0.25}
+	rSum := 0.0
 	minWidth := 10.0
 
-	columnWidths := utils.CalculateColumnWidths(ratios, width-2*MARGIN, minWidth)
+	for _, r := range ratios {
+		rSum += r
+	}
+
+	if rSum != 1 {
+		panic("sum of ratios must be 1")
+	}
+
+	columnWidths := utils.CalculateColumnWidths(ratios, width, minWidth, float64(MARGIN))
 
 	for j, str := range columns {
-		pdf.SetFont("Arial", "B", 14)
+		pdf.SetFont("Arial", "B", 12)
 		pdf.CellFormat(columnWidths[j], 10, str, "1", 0, "L", false, 0, "")
 	}
 
 	pdf.Ln(-1)
 
-	pdf.SetFont("Arial", "", 12)
+	pdf.SetFont("Arial", "", 10)
 
 	addTransactions(pdf, transactions, columnWidths)
+
+	tempPdf := *pdf
+	// create pdf
+	err := createPDF(&tempPdf)
+	if err != nil {
+		panic(err)
+	}
 
 	// Create a bytes.Buffer to use as an intermediary
 	buffer := bytes.Buffer{}
 	// Create an io.Writer that writes to the buffer
 	writer := io.Writer(&buffer)
 	// Write pdf data to the writer
-	err := pdf.Output(writer)
+
+	err = pdf.Output(writer)
 	if err != nil {
 		panic(err)
 	}
@@ -117,7 +129,7 @@ func addTransactions(pdf *gofpdf.Fpdf, transactions []models.Transaction, cols [
 	// create table rows
 	for _, t := range transactions {
 		rows = append(rows, []string{strconv.FormatInt(t.ID, 10), strconv.FormatInt(t.AccountNumber, 10),
-			strconv.FormatFloat(t.Amount, 'f', 2, 64), string(t.Type), t.Date.String(), t.Description})
+			strconv.FormatFloat(t.Amount, 'f', 2, 64), string(t.Type), t.Date, t.Description})
 	}
 
 	for _, row := range rows {
@@ -148,4 +160,9 @@ func addTransactions(pdf *gofpdf.Fpdf, transactions []models.Transaction, cols [
 		}
 		pdf.SetXY(curx, y+height)
 	}
+}
+
+func createPDF(pdf *gofpdf.Fpdf) error {
+	rand.Seed(time.Now().UnixNano())
+	return pdf.OutputFileAndClose("transactions" + strconv.Itoa(rand.Int()) + ".pdf")
 }

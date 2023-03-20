@@ -6,9 +6,9 @@ func CreateFile() (*os.File, error) {
 	return os.Create("../Files/File1.pdf")
 }
 
-func CalculateColumnWidths(ratios []float64, totalWidth float64, minWidth float64) []float64 {
+func CalculateColumnWidths(ratios []float64, totalWidth, minWidth, margin float64) []float64 {
 	numColumns := len(ratios)
-	remainingWidth := totalWidth
+	remainingWidth := totalWidth - 2*margin
 
 	// Calculate the total minimum width required for all columns
 	totalMinWidth := minWidth * float64(numColumns)
