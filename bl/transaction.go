@@ -108,7 +108,6 @@ func (w GoPDFWriter) WriteToPDF(transactions []models.Transaction) string {
 	// Create an io.Writer that writes to the buffer
 	writer := io.Writer(&buffer)
 	// Write pdf data to the writer
-
 	err = pdf.Output(writer)
 	if err != nil {
 		panic(err)

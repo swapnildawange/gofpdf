@@ -4,10 +4,9 @@ import (
 	"testing"
 )
 
-func Benchmark_WriteToPDF(b *testing.B) {
+func Test_WriteToPDF(t *testing.T) {
 	w := GoPDFWriter{}
-	for n := 0; n < b.N; n++ {
-		transactions := GetTransactions(n)
-		w.WriteToPDF(transactions)
-	}
+	transactions := GetTransactions(100)
+	w.WriteToPDF(transactions)
+
 }
